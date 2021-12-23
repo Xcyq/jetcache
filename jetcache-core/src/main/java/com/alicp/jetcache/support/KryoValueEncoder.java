@@ -21,6 +21,7 @@ public class KryoValueEncoder extends AbstractValueEncoder {
 
     static ThreadLocal<Object[]> kryoThreadLocal = ThreadLocal.withInitial(() -> {
         Kryo kryo = new Kryo();
+        kryo.setRegistrationRequired(false);
         kryo.setDefaultSerializer(CompatibleFieldSerializer.class);
 //        kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
 //        kryo.setInstantiatorStrategy(new Kryo.DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
@@ -33,6 +34,22 @@ public class KryoValueEncoder extends AbstractValueEncoder {
 
     public KryoValueEncoder(boolean useIdentityNumber) {
         super(useIdentityNumber);
+    }
+
+    /**
+     * reverse identity number, cause kryo5 changed written logic
+     * @return reverse identity number
+     */
+    private int reverseIdentityNumber () {
+        int x = 0;
+        x = x | (IDENTITY_NUMBER & 0xFF);
+        x <<= 8;
+        x = x | (IDENTITY_NUMBER >> 8 & 0xFF);
+        x <<= 8;
+        x = x | (IDENTITY_NUMBER >> 16 & 0xFF);
+        x <<= 8;
+        x = x | (IDENTITY_NUMBER >> 24 & 0xFF);
+        return x;
     }
 
     @Override
@@ -49,7 +66,7 @@ public class KryoValueEncoder extends AbstractValueEncoder {
 
             try {
                 if (useIdentityNumber) {
-                    output.writeInt(IDENTITY_NUMBER);
+                    output.writeInt(reverseIdentityNumber());
                 }
                 kryo.writeClassAndObject(output, value);
                 return output.toBytes();
